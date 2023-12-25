@@ -1,0 +1,31 @@
+title: "Build and deploy a stroke prediction model using R"
+date: "`r Sys.Date()`"
+output: html_document
+author: "Wasyihun Sema Admass"
+
+install.packages("tidyverse")
+install.packages("corrplot")
+install.packages("tidymodels")
+install.packages("rpart.plot")
+install.packages("skimr")
+install.packages("data.tree")
+install.packages("plyr")
+install.packages("lifecycle")
+install.packages("dplyr")
+install.packages("readr")
+library(rpart)
+library(rpart.plot)
+library(data.tree)
+library(caTools)
+library(plyr)
+library(dplyr)
+library(readr)
+# Load your data
+
+setwd("E:/10Academy/Build-and-deploy-a-stroke-prediction-model-using-R")
+H_data <- read.csv("healthcare-dataset-stroke-data.csv")
+
+
+# Perform data cleaning, exploration, and analysis
+#
+

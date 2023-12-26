@@ -4,6 +4,7 @@ output: html_document
 author: "Wasyihun Sema Admass"
 
 install.packages("tidyverse")
+install.packages("skimr")
 install.packages("corrplot")
 install.packages("tidymodels")
 install.packages("rpart.plot")
@@ -13,13 +14,28 @@ install.packages("plyr")
 install.packages("lifecycle")
 install.packages("dplyr")
 install.packages("readr")
-library(rpart)
-library(rpart.plot)
-library(data.tree)
-library(caTools)
-library(plyr)
-library(dplyr)
-library(readr)
+install.packages(c("lattice", "Matrix"))
+install.packages("glmnet")
+install.packages("randomForest")
+install.packages("naivebayes")
+install.packages("caret")
+install.packages("xgboost")
+install.packages("Metrics")
+
+
+library(tidymodels)
+library(glmnet)
+library(corrplot)
+library(skimr)
+library(randomForest)
+library(naivebayes)
+library(class)
+library(caret)
+library(e1071)
+
+library(xgboost)
+library(Metrics)
+version
 # Load your data
 
 setwd("E:/10Academy/Build-and-deploy-a-stroke-prediction-model-using-R")
@@ -27,5 +43,314 @@ H_data <- read.csv("healthcare-dataset-stroke-data.csv")
 
 
 # Perform data cleaning, exploration, and analysis
-#
+# description of data in a dataset
+str(H_data)
 
+
+# the data set contains 12 varaibles  and 5110 attributes and Varaible Id is not needed and let we drop the variable "ID"
+H_data <- H_data[, -1]
+
+# after removing the unwanted variables let me check the duplicated variables in the data set
+sum(duplicated(H_data))
+
+# Thier is no duplicated items and then let me chack the Null values in the dataset
+
+colSums(is.na(H_data))
+colSums(H_data == "N/A")
+H_data$bmi <- as.numeric(H_data$bmi)
+colSums(H_data == "")
+H_data %>% count(gender)
+
+H_data <- H_data %>% filter(gender != "Other")
+# strock predicy=tion by Gender
+
+
+ggplot(H_data, aes(x = gender, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE")
+  
+  H_data %>% count(age)
+  
+  ggplot(H_data, aes(x=age, fill= as.factor(stroke))) + geom_bar(position="fill") + labs(fill= "STROKE")
+  
+  #show the stroke  with age and gender how it increase
+  
+  ggplot(H_data , aes(x = age, fill = as.factor(stroke))) +
+  geom_histogram(position = "fill") +
+  labs(fill = "STROKE")+
+  facet_wrap(~gender)
+  
+  # stroke with respect to hypertension 
+  
+  H_data %>% count(hypertension)
+  
+ ggplot(H_data , aes(x= hypertension, fill= as.factor(stroke))) + geom_bar(position="fill") +
+  labs(fill = "STROKE")
+  
+  
+  # hypertesntion with respect to gender
+  
+  ggplot(H_data , aes(x = hypertension, fill = as.factor(stroke))) +
+  geom_bar(position="fill") +
+  labs(fill = "STROKE")+
+  facet_wrap(~gender)
+  
+# stroke with respect to heart disease
+
+H_data %>% count(heart_disease)
+
+ggplot(H_data, aes(x = heart_disease, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE")
+# stroke with respect to heart disease
+
+  ggplot(H_data , aes(x = heart_disease, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE")+
+  facet_wrap(~gender)
+  
+# Stroke with Hear disease and  gender
+
+  ggplot(H_data , aes(x = heart_disease, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE")+
+  facet_wrap(~gender)
+# Hear dosease increase the stroke and the level of strok on both female and male are the same 
+# check ever_married
+H_data %>% count(ever_married)
+
+ggplot(H_data, aes(x = ever_married, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE")
+  
+  ggplot(H_data, aes(x = ever_married, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE") +
+  facet_wrap(~gender)
+# married peoples are more vulnerable for stroke but un married are less. 
+
+H_data %>% group_by(ever_married, gender) %>% summarise( avg_age = mean(age))
+# In order to make fair comparison between married and not married people we need to filter the date for similar age (above 50) 
+H_data %>% 
+  filter (age > 49) %>% 
+ggplot(aes(x = ever_married, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE") +
+  facet_wrap(~gender)
+# As indicated non married females have higher stroke than married, while in men it is slightly higher for married male.
+
+H_data %>% count(work_type)
+
+ggplot(H_data, aes(x = work_type, fill = as.factor(stroke))) +
+  geom_bar(position ="fill") +
+  labs(fill = "STROKE") +
+  theme(axis.text.x = element_text(angle = 45))
+  
+  
+  ggplot(H_data, aes(x = work_type, fill = as.factor(stroke))) +
+  geom_bar(position ="fill") +
+  labs(fill = "STROKE") +
+  facet_wrap(~gender) +
+  theme(axis.text.x = element_text(angle = 45))
+# check Residence_type
+H_data %>% count(Residence_type)
+
+ggplot(H_data, aes(x = Residence_type, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE") +
+  theme(axis.text.x = element_text(angle = 45))
+
+# check avg_glucose_level
+H_data %>% count(avg_glucose_level)
+
+ggplot(H_data, aes(x = avg_glucose_level, fill = as.factor(stroke))) +
+  geom_histogram(position = "fill") +
+  labs(fill = "STROKE")
+  
+  ggplot(H_data, aes(x = avg_glucose_level, fill = as.factor(stroke))) +
+  geom_histogram(position = "fill") +
+  labs(fill = "STROKE") +
+  facet_wrap(~gender)
+  
+# check smoking_status
+
+H_data %>% count(smoking_status)
+
+ggplot(H_data, aes(x = smoking_status, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE") +
+  theme(axis.text.x = element_text(angle = 45))
+# unbelevable result that people whom formerly smoked have higher stroke than people who currently smokes.
+
+ggplot(H_data, aes(x = smoking_status, fill = as.factor(stroke))) +
+  geom_bar(position = "fill") +
+  labs(fill = "STROKE") +
+  facet_wrap(~gender) +
+  theme(axis.text.x = element_text(angle = 45))
+# female never smoked has slightly higher stroke than smokers, in male smokers have higher stroke than never smoked.
+
+# it is strange that people whom formerly smoked have higher stroke than people who currently smokes in both female and male.
+H_data %>% group_by(smoking_status, gender) %>% summarise( avg_age = mean(age))
+
+# Now when we compare the using average age we find that average age of formerly smoked is higher than never smoked which explains why stroke increased. 
+
+# check stroke
+H_data %>% count(stroke)
+
+H_data$diabetes <- "Prediabetes"
+H_data["diabetes"][H_data["avg_glucose_level"] <= 99] <- "Normal"
+H_data["diabetes"][H_data["avg_glucose_level"] >= 126] <- "Diabetes"
+# count NA by Diabetes status
+H_data %>%
+  count(bmi, diabetes, gender) %>%
+  filter(is.na(bmi))
+  
+# calculate avg bmi for each diabetes level
+H_data %>%
+  group_by(diabetes, gender) %>%
+  summarise(Avg_bmi = mean(bmi, na.rm = TRUE))
+  
+# impute NA values
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Diabetes" & H_data["gender"] == "Female"] <- 31.94580
+
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Diabetes" & H_data["gender"] == "Male"] <- 30.92271
+
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Normal" & H_data["gender"] == "Female"] <- 28.59695
+
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Normal" & H_data["gender"] == "Male"] <- 28.12900   
+
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Prediabetes" & H_data["gender"] == "Female"] <- 28.06448
+
+H_data["bmi"][is.na(H_data["bmi"]) & H_data["diabetes"] == "Prediabetes" & H_data["gender"] == "Male"] <- 27.86495
+
+# drop diabetes column
+H_data <- H_data[, -12]
+
+# check distribution of bmi
+ggplot(H_data, aes(x = bmi, fill = as.factor(stroke))) +
+  geom_histogram(position = "fill") +
+  labs(fill = "STROKE")
+  
+  summary(H_data)
+  
+  
+  skim(H_data)
+  H_data$stroke <- as.numeric(H_data$stroke)
+  
+  
+# normalize numerical variables
+H_data <- H_data %>%
+  mutate(age = rescale(age, to = 0:1), avg_glucose_level =
+  
+# Turn categorial variables to numeric
+H_data <- H_data %>% mutate_if(is.character, as.factor)
+
+col <- c("gender", "ever_married", "work_type", "Residence_type", "smoking_status")
+
+feature <- function(x) {
+  for (x in col) {
+    stroke_data <<- H_data %>%
+      mutate(dummy = 1) %>%
+      spread(key = x, value = dummy, fill = 0)
+  }
+}
+
+feature()
+H_data <- H_data %>% replace_na(mean(H_data, na.rm = TRUE))
+# calculate Correlation
+str(H_data)
+is.na(H_data)
+is.factor(H_data)
+select_if(H_data, is.numeric)
+H_data <- H_data %>% mutate_if(is.character, as.numeric)
+
+H_data_cor <- H_data %>%
+             select_if(is.numeric) %>%  
+             cor(method = "pearson", use = "pairwise.complete.obs")
+             
+  
+ H_data_cor[, "stroke"]
+ 
+ corrplot(H_data_cor, method = "number", number.digits = 1, number.cex = 0.5, tl.cex = 0.5)
+ 
+
+
+# Develop Prediction Model
+
+# prediction Model using Linear Model 
+
+#step1:- Split the dataset in to training and Test set
+
+set.seed(1234)
+
+strokedata_split <- initial_split(H_data, prop = 0.8)
+# train_data
+strokedata_training <- training(strokedata_split)
+# test_data
+strokedatae_testing <- testing(strokedata_split)
+
+# Base Linear model
+
+lm_model <- linear_reg(mode = "regression", engine = "lm")
+lm_fit <- lm_model %>%
+  fit(stroke ~ ., data = strokedata_training)
+  
+  print(lm_fit)
+  
+# check model performance
+lm_training_results <- lm_fit %>%
+  predict(new_data = strokedata_training) %>%
+  mutate(truth = strokedata_training$stroke)
+  
+  head(lm_training_results)
+  
+  lm_training_results[, ".pred"][lm_training_results[, ".pred"] >= 0.1] <- 1
+lm_training_results[, ".pred"][lm_training_results[, ".pred"] < 0.1] <- 0
+
+head(lm_training_results)
+
+
+# evaluate the model
+
+rsq_ml <- rsq(lm_training_results,
+  truth = truth,
+  estimate = .pred
+)
+
+
+rmse_ml <- yardstick::rmse(lm_training_results,
+  truth = truth,
+  estimate = .pred
+)
+
+rsq_ml
+
+# Accuracy results
+lm_training_results %>% count(.pred, truth)
+
+
+# Find variables with the most effect
+lm_fit %>%
+  tidy() %>%
+  arrange(desc(abs(estimate)))
+  
+  names(strokedata_training)
+  
+  poly_fit <- lm_model %>%
+  fit(stroke ~ . + poly(age, 6) + poly(avg_glucose_level, 6) + children * age + heart_disease * age + poly(bmi, 6) + Never_worked * age, data = strokedata_training)
+  
+  summary(poly_fit$fit)
+  
+  
+  
+#Build Random forest model with tune mtry and K fold validation
+# set stroke as factor
+strokedata_training <- strokedata_training %>%
+  mutate(stroke = as.factor(stroke))
+
+strokedatae_testing <- strokedatae_testing %>%
+  mutate(stroke = as.factor(stroke))
+  
+  set.seed(123)
+  
+  
